@@ -170,17 +170,17 @@ void Texture::ColorPixel(Uint32 index, Uint32 color)
 }
 Uint32 Texture::GetPixelColor(Uint32 x, Uint32 y)
 {
-	if (pixels != NULL && x < width && y < height)
+	if (pixels == NULL || x > width || y > height)
 	{
-		return pixels[x + (y * width)];
+		return 0;
 	}
-	return 0;
+	return pixels[x + (y * width)];
 }
 Uint32 Texture::UncheckedGetPixelColor(Uint32 x, Uint32 y)
 {
-	if (x < width && y < height)
+	if (x > width || y > height)
 	{
-		return pixels[x + (y*width)];
+		return 0;
 	}
-	return 0;
+	return pixels[x + (y * width)];
 }

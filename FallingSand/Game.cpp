@@ -46,7 +46,7 @@ void Game::Start()
 			lastFrameTime = currentFrameTime;
 			currentFrameTime = SDL_GetTicks();
 			deltaTime = (float)(currentFrameTime - lastFrameTime) / 1000;
-			if (deltaTime > 1.0/1.0) {deltaTime = 1.0/1.0;}
+			//if (deltaTime > 1.0/1.0) {deltaTime = 1.0/1.0;}
 			//std::cout<<1/deltaTime<<std::endl;
 			
 			//Get user input
@@ -54,12 +54,12 @@ void Game::Start()
 			
 			//Fixed time step for calculating change in board
 			physicsTimer += deltaTime;
-			while (physicsTimer >= fixedTimeStep)
-			{
+			//while (physicsTimer >= fixedTimeStep)
+			//{
 				//Update board
 				board.Update();
-				physicsTimer -= fixedTimeStep;
-			}
+				//physicsTimer -= fixedTimeStep;
+			//}
 				
 			//Draw board
 			renderer->Draw(board.GetTexture());

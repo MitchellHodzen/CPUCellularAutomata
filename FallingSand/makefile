@@ -1,5 +1,5 @@
 CC = g++
-CLIBS = `sdl2-config --cflags --libs` -lSDL2_image
+CLIBS = `sdl2-config --cflags --libs` -lSDL2_image -lpthread
 OUTPUT = test
 DEBUGOUTPUTDIR = bin/debug
 RELEASEOUTPUTDIR = bin/release

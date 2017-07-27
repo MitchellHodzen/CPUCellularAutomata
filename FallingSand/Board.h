@@ -1,6 +1,7 @@
 #pragma once
 #include "Texture.h"
 #include "SDL.h"
+#include <thread>
 
 class Renderer;
 class Board
@@ -19,4 +20,7 @@ class Board
 		void MergeBuffer();
 		int width;
 		int height;
+		std::thread* threads;
+		int threadCount;
+		void SpawnThread(int index, int rowIndex, int rowCount);
 };

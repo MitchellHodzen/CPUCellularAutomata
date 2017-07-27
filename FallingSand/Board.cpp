@@ -16,12 +16,49 @@ Board::Board(int width, int height, Renderer* renderer)
 	buffer = new Uint32[width * height];
 	memcpy((void*)buffer, (void*) texture->GetPixels(), texture->GetPitch() * height);
 	texture->UnlockTexture();
+
+	int total = height;
+	threadCount = std::thread::hardware_concurrency();
+	std::cout<<"Number of threads: "<< threadCount <<std::endl;
+	threads = new std::thread[threadCount];
+
+	int count = 0;
+	int rowsPerThread = height / threadCount;
+	std::cout<<"Rows per thread: "<<rowsPerThread<<std::endl;
+	for (int i = 0; i < threadCount; ++i)
+	{
+		int rowIndex = i * rowsPerThread;
+		int rowCount = rowsPerThread;
+		count += rowCount;
+		if (i == threadCount -1 && total - count != 0)
+		{
+			rowCount += total-count;
+			count += total-count; 
+		}
+		threads[i] = std::thread(&Board::SpawnThread, this, i, rowIndex, rowCount);
+	}
+	std::cout<< "total = " << total << ". count = " << count<<std::endl;
 }
 Board::~Board()
 {
 	delete[] buffer;
 	delete texture;
+	for(Uint32 i = 0; i < threadCount; ++i)
+	{
+		if (threads[i].joinable())
+		{
+			std::cout<<"Joining thread " << i <<std::endl;
+			threads[i].join();
+			std::cout<<"Joined thread " << i <<std::endl;
+		}
+	}
+	delete[] threads;	
 	SDL_FreeFormat(mappingFormat);
+}
+
+void Board::SpawnThread(int index, int rowIndex, int rowCount)
+{
+	std::cout<<"Spawning thread " << index << " with row index of " << rowIndex << " and row count of " << rowCount << std::endl;
 }
 
 Texture* Board::GetTexture()
