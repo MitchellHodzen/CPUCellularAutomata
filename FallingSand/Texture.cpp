@@ -19,7 +19,6 @@ Texture::~Texture()
 void Texture::CreateBlankTexture(int width, int height, Renderer* renderer)
 {
 	FreeTexture();
-	std::cout<<"In Texture::CreateBlankTexture: Width: "<<width<<std::endl;
 	texture = SDL_CreateTexture(renderer->GetRenderer(), SDL_GetWindowPixelFormat(renderer->GetWindow()), SDL_TEXTUREACCESS_STREAMING, width, height);
 	if (texture == NULL)
 	{
@@ -174,6 +173,14 @@ Uint32 Texture::GetPixelColor(Uint32 x, Uint32 y)
 	if (pixels != NULL && x < width && y < height)
 	{
 		return pixels[x + (y * width)];
+	}
+	return 0;
+}
+Uint32 Texture::UncheckedGetPixelColor(Uint32 x, Uint32 y)
+{
+	if (x < width && y < height)
+	{
+		return pixels[x + (y*width)];
 	}
 	return 0;
 }

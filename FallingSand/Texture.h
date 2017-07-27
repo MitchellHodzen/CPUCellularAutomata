@@ -27,6 +27,7 @@ public:
 	void ColorPixel(Uint32 x, Uint32 y, Uint32 color);
 	void ColorPixel(Uint32 index, Uint32 color);
 	Uint32 GetPixelColor(Uint32 x, Uint32 y);
+	Uint32 UncheckedGetPixelColor(Uint32 x, Uint32 y);
 private:
 	SDL_Texture* texture;
 	int width;

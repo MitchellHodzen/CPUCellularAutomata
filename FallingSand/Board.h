@@ -15,7 +15,7 @@ class Board
 		Uint32* buffer;
 		SDL_PixelFormat* mappingFormat; 
 		void MakeStatic(Uint32 color1, Uint32 color2);
-		void TestBuffer();
+		void CGOL();
 		void MergeBuffer();
 		int width;
 		int height;
