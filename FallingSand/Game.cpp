@@ -47,7 +47,7 @@ void Game::Start()
 			currentFrameTime = SDL_GetTicks();
 			deltaTime = (float)(currentFrameTime - lastFrameTime) / 1000;
 			//if (deltaTime > 1.0/1.0) {deltaTime = 1.0/1.0;}
-			//std::cout<<1/deltaTime<<std::endl;
+			std::cout<<1/deltaTime<<std::endl;
 			
 			//Get user input
 			quit = inputManager->HandleInput();
