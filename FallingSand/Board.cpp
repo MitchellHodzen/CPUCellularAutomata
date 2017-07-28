@@ -17,14 +17,14 @@ Board::Board(int width, int height, Renderer* renderer)
 	memcpy((void*)buffer, (void*) texture->GetPixels(), texture->GetPitch() * height);
 	texture->UnlockTexture();
 
+	//Separating the board into pieces by row to be passed evenly to threads
 	int total = height;
 	threadCount = std::thread::hardware_concurrency();
-	std::cout<<"Number of threads: "<< threadCount <<std::endl;
 	threads = new std::thread[threadCount];
+	currentBarrier = new Barrier(threadCount + 1);
 
 	int count = 0;
 	int rowsPerThread = height / threadCount;
-	std::cout<<"Rows per thread: "<<rowsPerThread<<std::endl;
 	for (int i = 0; i < threadCount; ++i)
 	{
 		int rowIndex = i * rowsPerThread;
@@ -37,7 +37,6 @@ Board::Board(int width, int height, Renderer* renderer)
 		}
 		threads[i] = std::thread(&Board::SpawnThread, this, i, rowIndex, rowCount);
 	}
-	std::cout<< "total = " << total << ". count = " << count<<std::endl;
 }
 Board::~Board()
 {
@@ -53,12 +52,38 @@ Board::~Board()
 		}
 	}
 	delete[] threads;	
+	delete currentBarrier;
 	SDL_FreeFormat(mappingFormat);
 }
 
 void Board::SpawnThread(int index, int rowIndex, int rowCount)
 {
-	std::cout<<"Spawning thread " << index << " with row index of " << rowIndex << " and row count of " << rowCount << std::endl;
+	//std::unique_lock<std::mutex> mlock(writeBufferMutex);
+	while(true)
+	{
+		//std::unique_lock<std::mutex> mlock(writeBufferMutex);
+		//writeBufferConditionVariable.wait(mlock);
+		std::cout<<"E "<< index<<std::endl;
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout<<"D " << index <<std::endl;
+		//readBufferConditionVariable.notify_all();
+		currentBarrier->Wait();
+		std::cout<<"ALL DONE"<<std::endl;
+		//std::call_once(*currentFlag, [this](){
+			//readBufferMutex.lock();
+			//std::cout<<"EVERYONE IS DONE" << std::endl;
+			//delete currentBarrier;
+			//currentBarrier = new Barrier(threadCount);
+			//readBufferConditionVariable.notify_one();	
+			//readBufferMutex.unlock();
+		//});
+		//std::cout<<"EVERYONE IS DONE"<<std::endl;
+		//readBufferMutex.lock();
+		//counter--;
+		//readBufferMutex.unlock();
+
+	}
+	
 }
 
 Texture* Board::GetTexture()
@@ -67,10 +92,26 @@ Texture* Board::GetTexture()
 }
 void Board::Update()
 {
+	currentBarrier->Wait();
+	delete currentBarrier;
+	currentBarrier = new Barrier(threadCount + 1);
+	std::cout<<"WRITING TO BOARD"<<std::endl;
+	/*
+	std::unique_lock<std::mutex> mlock(readBufferMutex);
+	readBufferConditionVariable.wait(mlock);
+	delete currentFlag;
+	currentFlag = new std::once_flag();
+	//writeBufferMutex.lock();	
+	std::cout<<"WRITING TO THE BOARD"<<std::endl;
+	//writeBufferConditionVariable.notify_all();
+	//writeBufferMutex.unlock();
+	//std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
 	texture->LockTexture();
-	CGOL();
+	//CGOL();
 	MergeBuffer();
 	texture->UnlockTexture();
+	*/
 }
 
 
