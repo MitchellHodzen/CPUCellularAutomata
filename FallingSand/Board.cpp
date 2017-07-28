@@ -40,17 +40,20 @@ Board::Board(int width, int height, Renderer* renderer)
 }
 Board::~Board()
 {
+	exiting = true;
 	delete[] buffer;
 	delete texture;
+	
 	for(Uint32 i = 0; i < threadCount; ++i)
 	{
 		if (threads[i].joinable())
 		{
-			std::cout<<"Joining thread " << i <<std::endl;
-			threads[i].join();
-			std::cout<<"Joined thread " << i <<std::endl;
+			std::cout<<"Terminating thread " << i <<std::endl;
+			threads[i].detach();
+			std::cout<<"Terminated thread " << i <<std::endl;
 		}
 	}
+
 	delete[] threads;	
 	delete currentBarrier;
 	SDL_FreeFormat(mappingFormat);
@@ -59,15 +62,15 @@ Board::~Board()
 void Board::SpawnThread(int index, int rowIndex, int rowCount)
 {
 	//std::unique_lock<std::mutex> mlock(writeBufferMutex);
-	while(true)
+	while(!exiting)
 	{
 		//std::unique_lock<std::mutex> mlock(writeBufferMutex);
 		//writeBufferConditionVariable.wait(mlock);
-		std::cout<<"E "<< index<<std::endl;
+		//std::cout<<"E "<< index<<std::endl;
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		std::cout<<"D " << index <<std::endl;
+		//std::cout<<"D " << index <<std::endl;
 		//readBufferConditionVariable.notify_all();
-		currentBarrier->Wait();
+		currentBarrier->Wait(threadCount + 1);
 		std::cout<<"ALL DONE"<<std::endl;
 		//std::call_once(*currentFlag, [this](){
 			//readBufferMutex.lock();
@@ -92,26 +95,13 @@ Texture* Board::GetTexture()
 }
 void Board::Update()
 {
-	currentBarrier->Wait();
-	delete currentBarrier;
-	currentBarrier = new Barrier(threadCount + 1);
+	currentBarrier->Wait(threadCount + 1);
 	std::cout<<"WRITING TO BOARD"<<std::endl;
-	/*
-	std::unique_lock<std::mutex> mlock(readBufferMutex);
-	readBufferConditionVariable.wait(mlock);
-	delete currentFlag;
-	currentFlag = new std::once_flag();
-	//writeBufferMutex.lock();	
-	std::cout<<"WRITING TO THE BOARD"<<std::endl;
-	//writeBufferConditionVariable.notify_all();
-	//writeBufferMutex.unlock();
-	//std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-
 	texture->LockTexture();
-	//CGOL();
+	CGOL();
 	MergeBuffer();
 	texture->UnlockTexture();
-	*/
+	
 }
 
 
