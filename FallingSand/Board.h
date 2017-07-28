@@ -16,9 +16,10 @@ class Board
 	private:
 		Texture* texture = new Texture();
 		Uint32* buffer;
+		Uint32* boardCopy;
 		SDL_PixelFormat* mappingFormat; 
 		void MakeStatic(Uint32 color1, Uint32 color2);
-		void CGOL();
+		void CGOL(int rowIndex, int rowCount);
 		void MergeBuffer();
 		int width;
 		int height;
@@ -26,5 +27,6 @@ class Board
 		int threadCount;
 		void SpawnThread(int index, int rowIndex, int rowCount);
 		Barrier* currentBarrier;
+		Barrier* writeBarrier;
 		bool exiting = false;
 };

@@ -14,7 +14,9 @@ Board::Board(int width, int height, Renderer* renderer)
 	texture->LockTexture();
 	MakeStatic(white, black);
 	buffer = new Uint32[width * height];
+	//boardCopy = new Uint32[width * height];
 	memcpy((void*)buffer, (void*) texture->GetPixels(), texture->GetPitch() * height);
+	//memcpy((void*)boardCopy, (void*) texture->GetPixels(), texture->GetPitch() * height);
 	texture->UnlockTexture();
 
 	//Separating the board into pieces by row to be passed evenly to threads
@@ -22,6 +24,7 @@ Board::Board(int width, int height, Renderer* renderer)
 	threadCount = std::thread::hardware_concurrency();
 	threads = new std::thread[threadCount];
 	currentBarrier = new Barrier(threadCount + 1);
+	writeBarrier = new Barrier(threadCount + 1);
 
 	int count = 0;
 	int rowsPerThread = height / threadCount;
@@ -40,7 +43,6 @@ Board::Board(int width, int height, Renderer* renderer)
 }
 Board::~Board()
 {
-	exiting = true;
 	delete[] buffer;
 	delete texture;
 	
@@ -48,9 +50,7 @@ Board::~Board()
 	{
 		if (threads[i].joinable())
 		{
-			std::cout<<"Terminating thread " << i <<std::endl;
 			threads[i].detach();
-			std::cout<<"Terminated thread " << i <<std::endl;
 		}
 	}
 
@@ -61,30 +61,11 @@ Board::~Board()
 
 void Board::SpawnThread(int index, int rowIndex, int rowCount)
 {
-	//std::unique_lock<std::mutex> mlock(writeBufferMutex);
-	while(!exiting)
+	while(true)
 	{
-		//std::unique_lock<std::mutex> mlock(writeBufferMutex);
-		//writeBufferConditionVariable.wait(mlock);
-		//std::cout<<"E "<< index<<std::endl;
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		//std::cout<<"D " << index <<std::endl;
-		//readBufferConditionVariable.notify_all();
+		writeBarrier->Wait(threadCount + 1);
+		CGOL(rowIndex, rowCount);
 		currentBarrier->Wait(threadCount + 1);
-		std::cout<<"ALL DONE"<<std::endl;
-		//std::call_once(*currentFlag, [this](){
-			//readBufferMutex.lock();
-			//std::cout<<"EVERYONE IS DONE" << std::endl;
-			//delete currentBarrier;
-			//currentBarrier = new Barrier(threadCount);
-			//readBufferConditionVariable.notify_one();	
-			//readBufferMutex.unlock();
-		//});
-		//std::cout<<"EVERYONE IS DONE"<<std::endl;
-		//readBufferMutex.lock();
-		//counter--;
-		//readBufferMutex.unlock();
-
 	}
 	
 }
@@ -95,10 +76,9 @@ Texture* Board::GetTexture()
 }
 void Board::Update()
 {
-	currentBarrier->Wait(threadCount + 1);
-	std::cout<<"WRITING TO BOARD"<<std::endl;
 	texture->LockTexture();
-	CGOL();
+	writeBarrier->Wait(threadCount + 1);
+	currentBarrier->Wait(threadCount + 1);
 	MergeBuffer();
 	texture->UnlockTexture();
 	
@@ -112,7 +92,7 @@ void Board::MergeBuffer()
 		texture->ColorPixel(i, buffer[i]);
 	}
 }	
-void Board::CGOL()
+void Board::CGOL(int rowIndex, int rowCount)
 {
 	//Conway's Game of Life
 	Uint32 black = SDL_MapRGBA(mappingFormat, 0, 0, 0, 0x00);
@@ -121,7 +101,7 @@ void Board::CGOL()
 	int count = 0;
 	for(Uint32 x = 0; x < width; ++x)
 	{
-		for (Uint32 y = 0; y < height; ++y)
+		for (Uint32 y = rowIndex; y < rowIndex + rowCount; ++y)
 		{
 			count = 0;
 
