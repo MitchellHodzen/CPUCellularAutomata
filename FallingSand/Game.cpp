@@ -4,9 +4,7 @@
 Game::Game()
 {
 	screenWidth = 800;
-	screenHeight = 601;
-	//levelWidth = 1000;
-	//levelHeight = 1001;
+	screenHeight = 600;
 
 	renderer = new Renderer(screenWidth, screenHeight, false);
 	//mediaManager = new MediaManager();
@@ -23,8 +21,11 @@ Game::~Game()
 
 void Game::Start()
 {
+	std::cout<<0x10<<std::endl<<0x80<<std::endl<<0x100<<std::endl;
 	if (Initialize())
 	{
+		float averageFramerate = 0;
+		int frames = 0;
 		bool quit = false;
 
 		//How often the board updates, must be a low enough framerate to ensure update finishes in time
@@ -46,8 +47,10 @@ void Game::Start()
 			lastFrameTime = currentFrameTime;
 			currentFrameTime = SDL_GetTicks();
 			deltaTime = (float)(currentFrameTime - lastFrameTime) / 1000;
+			averageFramerate += 1/deltaTime;
+			frames++;
 			//if (deltaTime > 1.0/1.0) {deltaTime = 1.0/1.0;}
-			std::cout<<1/deltaTime<<std::endl;
+			//std::cout<<1/deltaTime<<std::endl;
 			
 			//Get user input
 			quit = inputManager->HandleInput();
@@ -65,6 +68,8 @@ void Game::Start()
 			renderer->Draw(board.GetTexture());
 			//SDL_Delay(30);
 		}
+		averageFramerate = averageFramerate / frames;
+		std::cout<<"Average Framerate: " << averageFramerate << std::endl;
 	}
 }
 

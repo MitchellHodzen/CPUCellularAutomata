@@ -178,8 +178,10 @@ Uint32 Texture::GetPixelColor(Uint32 x, Uint32 y)
 }
 Uint32 Texture::UncheckedGetPixelColor(Uint32 x, Uint32 y)
 {
+	//assumes the board size is not Uint32 = -1 pixels long or wide
 	if (x > width || y > height)
 	{
+
 		return 0;
 	}
 	return pixels[x + (y * width)];

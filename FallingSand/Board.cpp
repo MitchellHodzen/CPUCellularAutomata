@@ -13,6 +13,7 @@ Board::Board(int width, int height, Renderer* renderer)
 	mappingFormat = SDL_AllocFormat(format);
 	white = SDL_MapRGBA(mappingFormat, 0xFF, 0xFF, 0xFF, 0x00);
 	black = SDL_MapRGBA(mappingFormat, 0, 0, 0, 0x00);
+	blue = SDL_MapRGBA(mappingFormat, 0x00, 0x00, 0x80, 0x00);
 
 	//Add random black pixels to the texture
 	texture->LockTexture();
@@ -21,6 +22,28 @@ Board::Board(int width, int height, Renderer* renderer)
 	buffer = new Uint32[width * height];
 	memcpy((void*)buffer, (void*) texture->GetPixels(), texture->GetPitch() * height);
 	texture->UnlockTexture();
+
+	//Create a water board
+	waterBoardBuffer1 = new Uint8[width * height];
+	waterBoardBuffer2 = new Uint8[width * height];
+	waterBoard = waterBoardBuffer1;
+	waterBuffer = waterBoardBuffer2;
+
+	for(int i = 0; i < width * height; ++i)
+	{
+		waterBuffer[i] = 0;
+	}
+
+	for(int i = width/2 - 10; i < width/2 + 10; ++i)
+	{
+		for(int j = height /2 - 10; j < height/2 + 10; ++j)
+		{
+			int index = j - (height/2 - 10);
+			SetWater(i, j, index*8, waterBuffer);
+		}
+		SetWater(i, height/2 + 100, 2, waterBuffer);
+	}
+	
 
 	//Separating the board into pieces by row to be passed evenly to threads
 	int total = height;
@@ -70,7 +93,8 @@ void Board::SpawnThread(int index, int rowIndex, int rowCount)
 	{
 		//Waits until the buffer is coppied and the texture is unlocked in the update thread
 		writeBarrier->Wait(threadCount + 1);
-		CGOL(rowIndex, rowCount);
+		//CGOL(rowIndex, rowCount);
+		SimulateWater(rowIndex, rowCount);
 		//Lets the board know the buffer is written
 		readBarrier->Wait(threadCount + 1);
 	}
@@ -84,6 +108,9 @@ Texture* Board::GetTexture()
 void Board::Update()
 {
 	//Wait until the buffer is completely written
+	Uint8* temp = waterBoard;
+	waterBoard = waterBuffer;
+	waterBuffer = temp;
 	texture->LockTexture();
 	writeBarrier->Wait(threadCount + 1);
 	readBarrier->Wait(threadCount + 1);
@@ -98,7 +125,15 @@ void Board::MergeBuffer()
 {
 	for(Uint32 i = 0; i < width * height; ++i)
 	{
-		texture->ColorPixel(i, buffer[i]);
+		//texture->ColorPixel(i, buffer[i]);
+		if (waterBoard[i] > 0)
+		{
+			texture->ColorPixel(i, SDL_MapRGBA(mappingFormat, 0, 0, 255 - waterBoard[i], 0));
+		}
+		else
+		{
+			texture->ColorPixel(i, white);
+		}	
 	}
 }	
 void Board::CGOL(int rowIndex, int rowCount)
@@ -135,6 +170,44 @@ void Board::CGOL(int rowIndex, int rowCount)
 		}
 	}
 }	
+void Board::SimulateWater(int rowIndex, int rowCount)
+{
+	for(Uint32 x = 0; x < width; ++x)
+	{
+		for (Uint32 y = rowIndex; y < rowIndex + rowCount; ++y)
+		{
+			Uint8 waterAmount = GetWater(x, y, waterBoard);
+			//If water
+			if (waterAmount == 1)
+			{
+				if (GetWater(x, y + 1, waterBoard) == 0)
+				{
+					waterAmount = 0;
+				}
+			}
+			else if (waterAmount == 0)
+			{
+				if (GetWater(x, y - 1, waterBoard) == 1)
+				{
+					waterAmount = 1;
+				}
+			}
+			SetWater(x, y, waterAmount, waterBuffer);
+		}
+	}
+}
+Uint8 Board::GetWater(Uint32 x, Uint32 y, Uint8* board)
+{
+	if (x > width || y > height)
+	{
+		return 0;
+	}
+	return board[x + (y * width)];
+}
+void Board::SetWater(Uint32 x, Uint32 y, Uint8 amount, Uint8* board)
+{
+	board[x + (y * width)] = amount;
+}
 void Board::MakeStatic(Uint32 color1, Uint32 color2)
 {
 	for(Uint32 x = 0; x < texture->GetWidth(); ++x)

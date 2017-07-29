@@ -29,4 +29,12 @@ class Board
 		Barrier* writeBarrier;
 		Uint32 white;
 		Uint32 black;
+		Uint32 blue;
+		Uint8* waterBoardBuffer1;
+		Uint8* waterBoardBuffer2;
+		Uint8* waterBoard;
+		Uint8* waterBuffer;
+		Uint8 GetWater(Uint32 x, Uint32 y, Uint8* board);	
+		void SetWater(Uint32 x, Uint32 y, Uint8 amount, Uint8* board);
+		void SimulateWater(int rowIndex, int rowCount);
 };
