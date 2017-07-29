@@ -19,6 +19,7 @@ class Board
 		SDL_PixelFormat* mappingFormat; 
 		void MakeStatic(Uint32 color1, Uint32 color2);
 		void CGOL(int rowIndex, int rowCount);
+		void MergeBuffer(int rowIndex, int rowCount);
 		void MergeBuffer();
 		int width;
 		int height;
@@ -27,6 +28,7 @@ class Board
 		void SpawnThread(int index, int rowIndex, int rowCount);
 		Barrier* readBarrier;
 		Barrier* writeBarrier;
+		Barrier* bufferBarrier;
 		Uint32 white;
 		Uint32 black;
 		Uint32 blue;

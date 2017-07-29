@@ -21,7 +21,6 @@ Game::~Game()
 
 void Game::Start()
 {
-	std::cout<<0x10<<std::endl<<0x80<<std::endl<<0x100<<std::endl;
 	if (Initialize())
 	{
 		float averageFramerate = 0;

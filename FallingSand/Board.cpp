@@ -39,7 +39,8 @@ Board::Board(int width, int height, Renderer* renderer)
 		for(int j = height /2 - 10; j < height/2 + 10; ++j)
 		{
 			int index = j - (height/2 - 10);
-			SetWater(i, j, index*8, waterBuffer);
+			Uint8 color = index*8;
+			SetWater(i, j, 1, waterBuffer);
 		}
 		SetWater(i, height/2 + 100, 2, waterBuffer);
 	}
@@ -51,6 +52,7 @@ Board::Board(int width, int height, Renderer* renderer)
 	threads = new std::thread[threadCount];
 	readBarrier = new Barrier(threadCount + 1);
 	writeBarrier = new Barrier(threadCount + 1);
+	bufferBarrier = new Barrier(threadCount);
 
 	int count = 0;
 	int rowsPerThread = height / threadCount;
@@ -93,9 +95,11 @@ void Board::SpawnThread(int index, int rowIndex, int rowCount)
 	{
 		//Waits until the buffer is coppied and the texture is unlocked in the update thread
 		writeBarrier->Wait(threadCount + 1);
-		//CGOL(rowIndex, rowCount);
-		SimulateWater(rowIndex, rowCount);
-		//Lets the board know the buffer is written
+		CGOL(rowIndex, rowCount);
+		//SimulateWater(rowIndex, rowCount);
+		//Wait to write to buffer
+		bufferBarrier->Wait(threadCount);
+		MergeBuffer(rowIndex, rowCount);
 		readBarrier->Wait(threadCount + 1);
 	}
 	
@@ -111,21 +115,44 @@ void Board::Update()
 	Uint8* temp = waterBoard;
 	waterBoard = waterBuffer;
 	waterBuffer = temp;
+
+
+
 	texture->LockTexture();
 	writeBarrier->Wait(threadCount + 1);
 	readBarrier->Wait(threadCount + 1);
 	//Write the buffer to the texture
-	MergeBuffer();
+	//MergeBuffer();
 	texture->UnlockTexture();
 	
 }
 
-
+void Board::MergeBuffer(int rowIndex, int rowCount)
+{
+	for(Uint32 x = 0; x < width; ++x)
+	{
+		for(Uint32 y = rowIndex; y < rowIndex + rowCount; ++y)
+		{
+			/*
+			if (waterBoard[x + (y * width)] > 0)
+			{
+				texture->ColorPixel(x, y, SDL_MapRGBA(mappingFormat, 0, 0, 255 - waterBoard[x + (y * width)], 0));
+			}
+			else
+			{
+				texture->ColorPixel(x, y, white);
+			}
+			*/
+			texture->ColorPixel(x, y, buffer[x + (y * width)]);
+		}
+	}
+}
 void Board::MergeBuffer()
 {
 	for(Uint32 i = 0; i < width * height; ++i)
 	{
-		//texture->ColorPixel(i, buffer[i]);
+		texture->ColorPixel(i, buffer[i]);
+		/*
 		if (waterBoard[i] > 0)
 		{
 			texture->ColorPixel(i, SDL_MapRGBA(mappingFormat, 0, 0, 255 - waterBoard[i], 0));
@@ -134,6 +161,7 @@ void Board::MergeBuffer()
 		{
 			texture->ColorPixel(i, white);
 		}	
+		*/
 	}
 }	
 void Board::CGOL(int rowIndex, int rowCount)
