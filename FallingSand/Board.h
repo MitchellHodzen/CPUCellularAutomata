@@ -40,6 +40,6 @@ class Board
 		Uint8 GetWater(Uint32 x, Uint32 y, Uint8* board);	
 		void SetWater(Uint32 x, Uint32 y, Uint8 amount, Uint8* board);
 		void SimulateWater(int rowIndex, int rowCount);
-		static Uint32 GetBoardColor(Uint32 x, Uint32 y, Uint32 width, Uint32 height, Uint32* board);
+		Uint32 GetBoardColor(Uint32 x, Uint32 y);
 		bool endProgram = false;
 };

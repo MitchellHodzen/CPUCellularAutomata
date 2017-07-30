@@ -102,16 +102,15 @@ void Board::SpawnThread(int index, int rowIndex, int rowCount)
 {
 	while(!endProgram)
 	{
-		//Waits until the buffer is coppied and the texture is unlocked in the update thread
-		//writeBarrier->Wait(threadCount + 1);
 		CGOL(rowIndex, rowCount);
-		//SimulateWater(rowIndex, rowCount);
-		//Wait to write to buffer
+		//wait for all threads to finish calculating
 		bufferBarrier->Wait(threadCount + 1);
+		//Wait for the main program to be ready to draw to texture
 		writeBarrier->Wait(threadCount + 1);
+		//Draw to texture
 		MergeBuffer(rowIndex, rowCount);
+		//Notify main program the texture has been written
 		readBarrier->Wait(threadCount + 1);
-		//readBarrier->Wait(threadCount + 1);
 	}
 }
 
@@ -121,7 +120,9 @@ Texture* Board::GetTexture()
 }
 void Board::Update(bool quit)
 {
+	//Wait for all threads to finish calculating
 	bufferBarrier->Wait(threadCount + 1);
+	//Switch buffers 
 	Uint8* temp1 = waterBoard;
 	waterBoard = waterBuffer;
 	waterBuffer = temp1;
@@ -130,9 +131,11 @@ void Board::Update(bool quit)
 	currentBoard = currentBuffer;
 	currentBuffer = temp;
 
+	//Unlock texture and notify threads that the texture is ready to be writen to
 	texture->LockTexture();
 	writeBarrier->Wait(threadCount + 1);
 	endProgram = quit;
+	//Wait for threads to finish writing to texture
 	readBarrier->Wait(threadCount + 1);
 	texture->UnlockTexture();
 	
@@ -195,16 +198,16 @@ void Board::CGOL(int rowIndex, int rowCount)
 			if (texture->UncheckedGetPixelColor(x , y + 1) == black) count++;
 			if (texture->UncheckedGetPixelColor(x + 1, y + 1) == black) count++;
 			*/
-			if (GetBoardColor(x - 1, y - 1, width, height, currentBoard) == black) count++;
-			if (GetBoardColor(x , y - 1, width, height, currentBoard) == black) count++;
-			if (GetBoardColor(x + 1, y - 1, width, height, currentBoard) == black) count++;
-			if (GetBoardColor(x - 1, y , width, height, currentBoard) == black) count++;
-			if (GetBoardColor(x + 1, y, width, height, currentBoard) == black) count++;
-			if (GetBoardColor(x - 1, y + 1, width, height, currentBoard) == black) count++;
-			if (GetBoardColor(x , y + 1, width, height, currentBoard) == black) count++;
-			if (GetBoardColor(x + 1, y + 1, width, height, currentBoard) == black) count++;
+			if (GetBoardColor(x - 1, y - 1) == black) count++;
+			if (GetBoardColor(x , y - 1) == black) count++;
+			if (GetBoardColor(x + 1, y - 1) == black) count++;
+			if (GetBoardColor(x - 1, y ) == black) count++;
+			if (GetBoardColor(x + 1, y) == black) count++;
+			if (GetBoardColor(x - 1, y + 1) == black) count++;
+			if (GetBoardColor(x , y + 1) == black) count++;
+			if (GetBoardColor(x + 1, y + 1) == black) count++;
 
-			if (count == 3 || (count == 2 && GetBoardColor(x, y, width, height, currentBoard) == black))//texture->GetPixelColor(x, y) == black))
+			if (count == 3 || (count == 2 && GetBoardColor(x, y) == black))//texture->GetPixelColor(x, y) == black))
 			{
 				color = black;
 			}
@@ -218,13 +221,13 @@ void Board::CGOL(int rowIndex, int rowCount)
 		}
 	}
 }	
-Uint32 Board::GetBoardColor(Uint32 x, Uint32 y, Uint32 width, Uint32 height, Uint32* board)
+Uint32 Board::GetBoardColor(Uint32 x, Uint32 y)
 {
-	if (x >= width || y >= height || board == NULL)
+	if (x >= width || y >= height)
 	{
 		return 0;
 	}
-	return board[x + (y * width)];
+	return currentBoard[x + (y * width)];
 }
 void Board::SimulateWater(int rowIndex, int rowCount)
 {

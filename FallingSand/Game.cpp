@@ -25,17 +25,24 @@ void Game::Start()
 	if (Initialize())
 	{
 		float averageFramerate = 0;
+		float averageSimFramerate = 0;
 		int frames = 0;
 		bool quit = false;
 
 		//How often the board updates, must be a low enough framerate to ensure update finishes in time
-		const float fixedTimeStep = 1.0/10.0;
+		const float fixedTimeStep = 1.0/30.0;
 		float physicsTimer = 0;
 
 		Uint32 lastFrameTime = 0;
 		Uint32 currentFrameTime = 0;
 		float deltaTime = 0.0f;
 		currentFrameTime = SDL_GetTicks();
+
+
+		Uint32 lastSimFrameTime = 0;
+		Uint32 currentSimFrameTime = 0;
+		float simDeltaTime = 0.0f;
+		currentSimFrameTime = SDL_GetTicks();
 
 
 		board = new Board(screenWidth, screenHeight, renderer);
@@ -49,8 +56,6 @@ void Game::Start()
 			deltaTime = (float)(currentFrameTime - lastFrameTime) / 1000;
 			averageFramerate += 1/deltaTime;
 			frames++;
-			//if (deltaTime > 1.0/1.0) {deltaTime = 1.0/1.0;}
-			//std::cout<<1/deltaTime<<std::endl;
 			
 			//Get user input
 			quit = inputManager->HandleInput();
@@ -59,9 +64,13 @@ void Game::Start()
 			physicsTimer += deltaTime;
 			//while (physicsTimer >= fixedTimeStep)
 			//{
+				lastSimFrameTime = currentSimFrameTime;
+				currentSimFrameTime = SDL_GetTicks();
+				simDeltaTime = (float)(currentFrameTime - lastFrameTime) / 1000;
+				averageSimFramerate += 1/simDeltaTime;
 				//Update board
 				board->Update(quit);
-				//physicsTimer -= fixedTimeStep;
+				physicsTimer -= fixedTimeStep;
 			//}
 				
 			//Draw board
@@ -69,7 +78,9 @@ void Game::Start()
 			//SDL_Delay(30);
 		}
 		averageFramerate = averageFramerate / frames;
+		averageSimFramerate = averageSimFramerate / frames;
 		std::cout<<"Average Framerate: " << averageFramerate << std::endl;
+		std::cout<<"Average Sim Framerate: " << averageSimFramerate << std::endl;
 	}
 }
 
