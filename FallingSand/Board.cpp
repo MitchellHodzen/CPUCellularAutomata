@@ -1,9 +1,12 @@
 #include "Board.h"
 #include "Renderer.h"
-
+#include <thread>
+#include "Texture.h"
+#include "Barrier.h"
 Board::Board(int width, int height, Renderer* renderer)
 {
 	//Set up texture (what is seen) 
+	texture = new Texture();
 	texture->CreateBlankTexture(width, height, renderer);
 	this->width = width;
 	this->height = height;
@@ -19,8 +22,12 @@ Board::Board(int width, int height, Renderer* renderer)
 	texture->LockTexture();
 	MakeStatic(white, black);
 	//Copy the texture to the buffer. The buffer always has the state of the board from the previous frame
-	buffer = new Uint32[width * height];
-	memcpy((void*)buffer, (void*) texture->GetPixels(), texture->GetPitch() * height);
+	buffer1 = new Uint32[width * height];
+	buffer2 = new Uint32[width * height];
+	currentBoard = buffer1;
+	currentBuffer = buffer2;
+	memcpy((void*)currentBuffer, (void*) texture->GetPixels(), texture->GetPitch() * height);
+	memcpy((void*)currentBoard, (void*) texture->GetPixels(), texture->GetPitch() * height);
 	texture->UnlockTexture();
 
 	//Create a water board
@@ -28,12 +35,10 @@ Board::Board(int width, int height, Renderer* renderer)
 	waterBoardBuffer2 = new Uint8[width * height];
 	waterBoard = waterBoardBuffer1;
 	waterBuffer = waterBoardBuffer2;
-
 	for(int i = 0; i < width * height; ++i)
 	{
 		waterBuffer[i] = 0;
 	}
-
 	for(int i = width/2 - 10; i < width/2 + 10; ++i)
 	{
 		for(int j = height /2 - 10; j < height/2 + 10; ++j)
@@ -44,7 +49,6 @@ Board::Board(int width, int height, Renderer* renderer)
 		}
 		SetWater(i, height/2 + 100, 2, waterBuffer);
 	}
-	
 
 	//Separating the board into pieces by row to be passed evenly to threads
 	int total = height;
@@ -52,7 +56,7 @@ Board::Board(int width, int height, Renderer* renderer)
 	threads = new std::thread[threadCount];
 	readBarrier = new Barrier(threadCount + 1);
 	writeBarrier = new Barrier(threadCount + 1);
-	bufferBarrier = new Barrier(threadCount);
+	bufferBarrier = new Barrier(threadCount + 1);
 
 	int count = 0;
 	int rowsPerThread = height / threadCount;
@@ -72,7 +76,12 @@ Board::Board(int width, int height, Renderer* renderer)
 }
 Board::~Board()
 {
-	delete[] buffer;
+	delete[] buffer1;
+	delete[] buffer2;
+	currentBoard = NULL;
+	currentBuffer = NULL;
+	delete[] waterBoardBuffer1;
+	delete[] waterBoardBuffer2;
 	delete texture;
 	
 	for(Uint32 i = 0; i < threadCount; ++i)
@@ -91,38 +100,40 @@ Board::~Board()
 
 void Board::SpawnThread(int index, int rowIndex, int rowCount)
 {
-	while(true)
+	while(!endProgram)
 	{
 		//Waits until the buffer is coppied and the texture is unlocked in the update thread
-		writeBarrier->Wait(threadCount + 1);
+		//writeBarrier->Wait(threadCount + 1);
 		CGOL(rowIndex, rowCount);
 		//SimulateWater(rowIndex, rowCount);
 		//Wait to write to buffer
-		bufferBarrier->Wait(threadCount);
+		bufferBarrier->Wait(threadCount + 1);
+		writeBarrier->Wait(threadCount + 1);
 		MergeBuffer(rowIndex, rowCount);
 		readBarrier->Wait(threadCount + 1);
+		//readBarrier->Wait(threadCount + 1);
 	}
-	
 }
 
 Texture* Board::GetTexture()
 {
 	return texture;
 }
-void Board::Update()
+void Board::Update(bool quit)
 {
-	//Wait until the buffer is completely written
-	Uint8* temp = waterBoard;
+	bufferBarrier->Wait(threadCount + 1);
+	Uint8* temp1 = waterBoard;
 	waterBoard = waterBuffer;
-	waterBuffer = temp;
+	waterBuffer = temp1;
 
-
+	Uint32* temp = currentBoard;
+	currentBoard = currentBuffer;
+	currentBuffer = temp;
 
 	texture->LockTexture();
 	writeBarrier->Wait(threadCount + 1);
+	endProgram = quit;
 	readBarrier->Wait(threadCount + 1);
-	//Write the buffer to the texture
-	//MergeBuffer();
 	texture->UnlockTexture();
 	
 }
@@ -143,7 +154,7 @@ void Board::MergeBuffer(int rowIndex, int rowCount)
 				texture->ColorPixel(x, y, white);
 			}
 			*/
-			texture->ColorPixel(x, y, buffer[x + (y * width)]);
+			texture->ColorPixel(x, y, currentBoard[x + (y * width)]);
 		}
 	}
 }
@@ -151,7 +162,7 @@ void Board::MergeBuffer()
 {
 	for(Uint32 i = 0; i < width * height; ++i)
 	{
-		texture->ColorPixel(i, buffer[i]);
+		texture->ColorPixel(i, currentBoard[i]);
 		/*
 		if (waterBoard[i] > 0)
 		{
@@ -174,7 +185,7 @@ void Board::CGOL(int rowIndex, int rowCount)
 		for (Uint32 y = rowIndex; y < rowIndex + rowCount; ++y)
 		{
 			count = 0;
-
+			/*
 			if (texture->UncheckedGetPixelColor(x - 1, y - 1) == black) count++;
 			if (texture->UncheckedGetPixelColor(x , y - 1) == black) count++;
 			if (texture->UncheckedGetPixelColor(x + 1, y - 1) == black) count++;
@@ -183,8 +194,17 @@ void Board::CGOL(int rowIndex, int rowCount)
 			if (texture->UncheckedGetPixelColor(x - 1, y + 1) == black) count++;
 			if (texture->UncheckedGetPixelColor(x , y + 1) == black) count++;
 			if (texture->UncheckedGetPixelColor(x + 1, y + 1) == black) count++;
+			*/
+			if (GetBoardColor(x - 1, y - 1, width, height, currentBoard) == black) count++;
+			if (GetBoardColor(x , y - 1, width, height, currentBoard) == black) count++;
+			if (GetBoardColor(x + 1, y - 1, width, height, currentBoard) == black) count++;
+			if (GetBoardColor(x - 1, y , width, height, currentBoard) == black) count++;
+			if (GetBoardColor(x + 1, y, width, height, currentBoard) == black) count++;
+			if (GetBoardColor(x - 1, y + 1, width, height, currentBoard) == black) count++;
+			if (GetBoardColor(x , y + 1, width, height, currentBoard) == black) count++;
+			if (GetBoardColor(x + 1, y + 1, width, height, currentBoard) == black) count++;
 
-			if (count == 3 || (count == 2 && texture->GetPixelColor(x, y) == black))
+			if (count == 3 || (count == 2 && GetBoardColor(x, y, width, height, currentBoard) == black))//texture->GetPixelColor(x, y) == black))
 			{
 				color = black;
 			}
@@ -193,11 +213,19 @@ void Board::CGOL(int rowIndex, int rowCount)
 				color = white;
 			}
 		
-			buffer[x + (y * width)] = color;
+			currentBuffer[x + (y * width)] = color;
 
 		}
 	}
 }	
+Uint32 Board::GetBoardColor(Uint32 x, Uint32 y, Uint32 width, Uint32 height, Uint32* board)
+{
+	if (x >= width || y >= height || board == NULL)
+	{
+		return 0;
+	}
+	return board[x + (y * width)];
+}
 void Board::SimulateWater(int rowIndex, int rowCount)
 {
 	for(Uint32 x = 0; x < width; ++x)

@@ -1,21 +1,22 @@
 #pragma once
-#include "Texture.h"
 #include "SDL.h"
 #include <thread>
-#include <mutex>
-#include <condition_variable>
-#include "Barrier.h"
 class Renderer;
+class Barrier;
+class Texture;
 class Board
 {
 	public:
 		Board(int width, int height, Renderer* renderer);
 		~Board();
-		void Update();
+		void Update(bool quit);
 		Texture* GetTexture();
 	private:
-		Texture* texture = new Texture();
-		Uint32* buffer;
+		Texture* texture;
+		Uint32* buffer1;
+		Uint32* buffer2;
+		Uint32* currentBuffer;
+		Uint32* currentBoard;
 		SDL_PixelFormat* mappingFormat; 
 		void MakeStatic(Uint32 color1, Uint32 color2);
 		void CGOL(int rowIndex, int rowCount);
@@ -39,4 +40,6 @@ class Board
 		Uint8 GetWater(Uint32 x, Uint32 y, Uint8* board);	
 		void SetWater(Uint32 x, Uint32 y, Uint8 amount, Uint8* board);
 		void SimulateWater(int rowIndex, int rowCount);
+		static Uint32 GetBoardColor(Uint32 x, Uint32 y, Uint32 width, Uint32 height, Uint32* board);
+		bool endProgram = false;
 };

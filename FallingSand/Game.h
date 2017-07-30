@@ -22,6 +22,7 @@ private:
 
 	Renderer* renderer;
 	InputManager* inputManager;
+	Board* board;
 
 	void MakeStatic(Texture* texture, Uint32 color1, Uint32 color2);
 };

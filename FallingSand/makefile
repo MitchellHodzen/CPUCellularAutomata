@@ -11,7 +11,7 @@ POBJECTS = $(SOURCES:.cpp=.o)
 OBJECTS = $(addprefix $(OBJDIR)/, $(POBJECTS))
 
 $(OUTPUT): $(OBJECTS)
-	$(CC) $(OBJECTS) $(CLIBS) -o $(DEBUGOUTPUTDIR)/$(OUTPUT)
+	$(CC) $(OBJECTS) $(CLIBS) -g -o $(DEBUGOUTPUTDIR)/$(OUTPUT)
 	@echo "\n"Debug build completed\; Enter $(DEBUGOUTPUTDIR)/$(OUTPUT) to run."\n"
 
 $(OBJDIR)/%.o: %.cpp

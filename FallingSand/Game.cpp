@@ -17,6 +17,7 @@ Game::~Game()
 	delete renderer;
 	//delete mediaManager;
 	delete inputManager;
+	delete board;
 }
 
 void Game::Start()
@@ -37,7 +38,7 @@ void Game::Start()
 		currentFrameTime = SDL_GetTicks();
 
 
-		Board board(screenWidth, screenHeight, renderer);
+		board = new Board(screenWidth, screenHeight, renderer);
 
 
 		while (quit == false)
@@ -59,12 +60,12 @@ void Game::Start()
 			//while (physicsTimer >= fixedTimeStep)
 			//{
 				//Update board
-				board.Update();
+				board->Update(quit);
 				//physicsTimer -= fixedTimeStep;
 			//}
 				
 			//Draw board
-			renderer->Draw(board.GetTexture());
+			renderer->Draw(board->GetTexture());
 			//SDL_Delay(30);
 		}
 		averageFramerate = averageFramerate / frames;
