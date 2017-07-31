@@ -76,6 +76,14 @@ Board::Board(int width, int height, Renderer* renderer)
 }
 Board::~Board()
 {
+
+	for(Uint32 i = 0; i < threadCount; ++i)
+	{
+		if (threads[i].joinable())
+		{
+			threads[i].join();
+		}
+	}
 	delete[] buffer1;
 	delete[] buffer2;
 	currentBoard = NULL;
@@ -83,15 +91,6 @@ Board::~Board()
 	delete[] waterBoardBuffer1;
 	delete[] waterBoardBuffer2;
 	delete texture;
-	
-	for(Uint32 i = 0; i < threadCount; ++i)
-	{
-		if (threads[i].joinable())
-		{
-			threads[i].detach();
-		}
-	}
-
 	delete[] threads;	
 	delete readBarrier;
 	delete writeBarrier;
