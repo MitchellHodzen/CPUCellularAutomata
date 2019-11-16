@@ -1,0 +1,5 @@
+.vscode/
+CellularAutomata/bin/debug/*
+CellularAutomata/bin/release/*
+CellularAutomata/bin/objects/*
+CellularAutomata/bin/*.o
